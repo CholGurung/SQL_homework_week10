@@ -1,5 +1,5 @@
 use sakila;
-/**
+
 -- 1a. Display the first and last names of all actors from the table actor.
      select first_name, last_name from actor;
 
@@ -120,12 +120,62 @@ select film.film_id, film.title from film INNER JOIN
 	select inventory.film_id, count(film_id) as frequency from inventory group by film_id;
 	select film.film_id, film.title, b.frequency from film INNER JOIN 
 	(select * from count_film) as b ON film.film_id = b.film_id ORDER by b.frequency desc;
-**/
+
 
 -- 7f. Write a query to display how much business, in dollars, each store brought in.
-
+select store.store_id, sum(a.amount) as total_amount from payment a
+ JOIN staff
+ ON a.staff_id = staff.staff_id
+ JOIN store
+ ON staff.store_id = store.store_id
+ GROUP By store.store_id;
+ 
+ 
 -- 7g. Write a query to display for each store its store ID, city, and country.
+select store.store_id, city.city, country.country from store 
+	JOIN address ON store.address_id = address.address_id
+	JOIN city ON city.city_id = address.city_id
+	JOIN country ON city.country_id = country.country_id;
+
 -- 7h. List the top five genres in gross revenue in descending order. (Hint: you may need to use the following tables: category, film_category, inventory, payment, and rental.)
+select d.name,sum(payment.amount) as gross_revenue from payment
+JOIN
+	(select c.inventory_id,c.film_id,c.name, rental.rental_id from rental 
+	 JOIN
+		(select inventory.inventory_id,inventory.film_id, b.name from inventory 
+		JOIN 
+			(	select film.film_id, a.name, a.category_id from film 
+				JOIN 
+				(	select category.name, category.category_id,film_category.film_id from category
+					JOIN film_category 
+					ON category.category_id = film_category.category_id ) as a
+				 ON film.film_id = a.film_id) as b
+		 ON inventory.film_id = b.film_id ) as c
+	 ON rental.inventory_id = c.inventory_id) as d
+ON payment.rental_id = d.rental_id group by d.name order by gross_revenue desc limit 5;
+
+
 -- 8a. In your new role as an executive, you would like to have an easy way of viewing the Top five genres by gross revenue. Use the solution from the problem above to create a view. If you haven't solved 7h, you can substitute another query to create a view.
+CREATE VIEW top_five_genre AS
+select d.name,sum(payment.amount) as gross_revenue from payment
+JOIN
+	(select c.inventory_id,c.film_id,c.name, rental.rental_id from rental 
+	 JOIN
+		(select inventory.inventory_id,inventory.film_id, b.name from inventory 
+		JOIN 
+			(	select film.film_id, a.name, a.category_id from film 
+				JOIN 
+				(	select category.name, category.category_id,film_category.film_id from category
+					JOIN film_category 
+					ON category.category_id = film_category.category_id ) as a
+				 ON film.film_id = a.film_id) as b
+		 ON inventory.film_id = b.film_id ) as c
+	 ON rental.inventory_id = c.inventory_id) as d
+ON payment.rental_id = d.rental_id group by d.name order by gross_revenue desc limit 5;
+
+
 -- 8b. How would you display the view that you created in 8a?
--- 8c. You find that you no longer need the view top_five_genres. Write a query to delete it.1a. Display the first and last names of all actors from the table actor.
+select * from top_five_genre;
+
+-- 8c. You find that you no longer need the view top_five_genres. Write a query to delete it.
+drop view top_five_genre;
